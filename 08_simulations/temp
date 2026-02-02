@@ -1,1 +1,6 @@
-
+fst_div_ratio.slim
+make_params.R
+run_ratio.slurm
+sim_calc_div_fst.R
+simulation_output.zip
+temp

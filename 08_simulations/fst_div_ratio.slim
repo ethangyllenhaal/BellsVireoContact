@@ -1,0 +1,94 @@
+// pretty basic initialize block
+initialize()
+{
+	initializeSex();
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);     // Autosome
+	initializeMutationType("m2", 0.5, "e", coeff);     // Selected mutations
+	
+	// set up genomic element with only neutral mutations to start
+	initializeGenomicElementType("g1", m1, 1.0);
+	defineConstant("L", 1e8);
+	
+	// make chromosomes one at a time, with fairly low recombination rate like some other birds
+	// mutation rate also close to generic songbird rate
+	// first two are autosomes, last is Z
+	initializeChromosome(1, L, type="A", symbol="1");
+	initializeGenomicElement(g1);
+	initializeRecombinationRate(2e-9);
+	initializeMutationRate(2e-9);
+	
+	initializeChromosome(2, L, type="A", symbol="2");
+	initializeGenomicElement(g1);
+	initializeRecombinationRate(2e-9);
+	initializeMutationRate(2e-9);
+	
+	initializeChromosome(3, L, type="Z", symbol="Z");
+	initializeGenomicElement(g1);
+	initializeRecombinationRate(2e-9);
+	initializeMutationRate(2e-9);
+}
+
+// make starter population
+1 early() {
+	n=10000;
+	sim.addSubpop("p1", n);
+}
+
+// split after 50k gens
+50000 early() {
+	sim.addSubpopSplit("p2", p1.individualCount, p1);
+}
+
+// start adding mutations with fitness benefit 10k gens after split
+60000 early() {
+	g1.setMutationFractions(c(m1, m2), c(1.0-freq, freq));
+}
+
+// 1000 years after beneficial mutations, begin migration
+61000 early() {
+	n=p1.individualCount;
+	p1.setMigrationRates(p2, mig/n);
+	// this is where asymmetry variable is used
+	p2.setMigrationRates(p1, (mig*asym)/n);
+}
+
+// set up block with marginally inefficient coding, only used every 1k gens
+61000: late() {
+	// every 1k generations
+	if(sim.cycle%1000==0){
+		// make a new output file for this checkpoint
+		outfile = paste("~/scratch/bevi/ratio_sim/output/ratio_",
+			asInteger(((sim.cycle-61000)/1000)), "_", coeff, "_", freq, "_", asym, "_", mig, "_", rep, ".txt", sep="");
+		// add header to output file
+		writeFile(outfile, paste("chr", "start", "end", "fst", "pi1", "pi2", sep="\t"), append=F);
+		// calculating mean Z:A ratio
+		for(chr in seq(1,3)){
+			// sample of 50 males per population
+			sample1 = sample(p1.individuals[p1.individuals.sex=="M"], 50).haplosomesForChromosomes(chromosomes=chr);
+			sample2 = sample(p2.individuals[p2.individuals.sex=="M"], 50).haplosomesForChromosomes(chromosomes=chr);
+			// set of relevant mutations
+			muts = c(sample1,sample2).mutations;
+			// steps for windows
+			start=0;
+			step=2e5;
+			// loop over each window
+			for(i in 0:(integerDiv(L, step)-1)){
+				end=start+step-1;
+				// find mutations between start and end of window
+				focal_muts = muts[muts.position>=start & muts.position<=(end)];
+				// calculate FST and pi
+				fst = calcFST(sample1, sample2, muts=focal_muts);
+				pi1 = calcPi(sample1, start=start, end=start+step-1);
+				pi2 = calcPi(sample2, start=start, end=start+step-1);
+				// output windowed line to file
+				writeFile(outfile, paste(chr, start, end, fst, pi1, pi2, sep="\t"), append=T);
+				// increment window start
+				start=start+step;
+			}
+		}
+	}
+}
+
+// stop the simulation
+71000 late(){sim.simulationFinished();}

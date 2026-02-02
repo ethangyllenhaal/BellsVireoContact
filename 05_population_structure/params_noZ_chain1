@@ -1,0 +1,9 @@
+datapath = bevi_noZ_eems_75
+mcmcpath = bevi_noZ_eems_75_chain1
+nIndiv = 40
+nSites = 94619
+nDemes = 1000
+diploid = true
+numMCMCIter = 3500000
+numBurnIter = 500000
+numThinIter = 9999
