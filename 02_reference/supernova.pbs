@@ -1,0 +1,21 @@
+#!/bin/bash
+# Ethan Gyllenhaal, egyllenhaal@unm.edu, May 20th, 2020
+#PBS -l nodes=1:ppn=32
+#PBS -l walltime=48:00:00
+#PBS -N bevi_mkout
+#PBS -S /bin/bash
+#PBS -j oe
+#PBS -M egyllenhaal@unm.edu
+#PBS -V
+#PBS -q bigmem-3TB
+
+# Load supernova
+module load supernova-2.1.1-intel-19.0.5-qxecglf
+
+# Change directory
+cd $PBS_O_WORKDIR
+
+# run supernova
+supernova mkoutput --style=pseudohap --asmdir=bevi_msb60504/outs/assembly --outprefix=bevi_ref_pseudohap
+
+
